@@ -1,0 +1,8 @@
+[
+  { "name": "なし", "baseAC": 10, "maxDexBonus": null },
+  { "name": "ローブ", "baseAC": 10, "maxDexBonus": null },
+  { "name": "レザーアーマー", "baseAC": 11, "maxDexBonus": null },
+  { "name": "スタデッドレザーアーマー", "baseAC": 12, "maxDexBonus": null },
+  { "name": "チェインシャツ", "baseAC": 13, "maxDexBonus": 2 },
+  { "name": "チェインメイル", "baseAC": 16, "maxDexBonus": 0 }
+]

@@ -1,0 +1,12 @@
+[
+  { "name": "ダガー", "attackType": "近接攻撃", "damageDie": "1d4" },
+  { "name": "シックル", "attackType": "近接攻撃", "damageDie": "1d6" },
+  { "name": "メイス", "attackType": "近接攻撃", "damageDie": "1d8" },
+  { "name": "スピア", "attackType": "近接攻撃", "damageDie": "1d8" },
+  { "name": "グレートアックス", "attackType": "近接攻撃", "damageDie": "1d12" },
+  { "name": "ロングソード", "attackType": "近接攻撃", "damageDie": "1d8" },
+  { "name": "グレートソード", "attackType": "近接攻撃", "damageDie": "2d6" },
+  { "name": "武術", "attackType": "近接攻撃", "damageDie": "1d6" },
+  { "name": "ロングボウ", "attackType": "遠隔攻撃", "damageDie": "1d8" },
+  { "name": "ショートソード", "attackType": "軽量攻撃", "damageDie": "1d6" }
+]

@@ -1,0 +1,98 @@
+[
+  {
+    "name": "ウィザード",
+    "stats": [8, 12, 13, 15, 14, 10],
+    "hp": 6,
+    "weaponName": "ダガー",
+    "armorName": "ローブ",
+    "hasShield": false
+  },
+  {
+    "name": "ウォーロック",
+    "stats": [8, 14, 13, 12, 10, 15],
+    "hp": 8,
+    "weaponName": "シックル",
+    "armorName": "レザーアーマー",
+    "hasShield": false
+  },
+  {
+    "name": "クレリック",
+    "stats": [14, 8, 13, 10, 15, 12],
+    "hp": 8,
+    "weaponName": "メイス",
+    "armorName": "チェインシャツ",
+    "hasShield": true
+  },
+  {
+    "name": "ソーサラー",
+    "stats": [10, 13, 14, 8, 12, 15],
+    "hp": 6,
+    "weaponName": "スピア",
+    "armorName": "なし",
+    "hasShield": false
+  },
+  {
+    "name": "ドルイド",
+    "stats": [8, 12, 14, 13, 15, 10],
+    "hp": 8,
+    "weaponName": "シックル",
+    "armorName": "レザーアーマー",
+    "hasShield": false
+  },
+  {
+    "name": "バード",
+    "stats": [8, 14, 12, 13, 10, 15],
+    "hp": 8,
+    "weaponName": "ダガー",
+    "armorName": "レザーアーマー",
+    "hasShield": false
+  },
+  {
+    "name": "バーバリアン",
+    "stats": [15, 13, 14, 10, 12, 8],
+    "hp": 12,
+    "weaponName": "グレートアックス",
+    "armorName": "なし",
+    "hasShield": false
+  },
+  {
+    "name": "パラディン",
+    "stats": [15, 10, 13, 8, 12, 14],
+    "hp": 10,
+    "weaponName": "ロングソード",
+    "armorName": "チェインメイル",
+    "hasShield": true
+  },
+  {
+    "name": "ファイター",
+    "stats": [15, 14, 13, 8, 10, 12],
+    "hp": 10,
+    "weaponName": "グレートソード",
+    "armorName": "チェインメイル",
+    "hasShield": false
+  },
+  {
+    "name": "モンク",
+    "stats": [12, 15, 13, 10, 14, 8],
+    "hp": 8,
+    "weaponName": "武術",
+    "armorName": "なし",
+    "hasShield": false
+  },
+  {
+    "name": "レンジャー",
+    "stats": [12, 15, 13, 8, 14, 10],
+    "hp": 10,
+    "weaponName": "ロングボウ",
+    "armorName": "スタデッドレザーアーマー",
+    "hasShield": false
+  },
+  {
+    "name": "ローグ",
+    "stats": [12, 15, 13, 14, 10, 8],
+    "hp": 8,
+    "weaponName": "ショートソード",
+    "armorName": "レザーアーマー",
+    "hasShield": false
+  }
+]

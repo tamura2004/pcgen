@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from "react";
 import {
   AppBar,
   Toolbar,
@@ -16,45 +16,51 @@ import {
   Snackbar,
   Alert,
   Paper,
-} from '@mui/material';
-import Grid from '@mui/material/Grid';
-import RefreshIcon from '@mui/icons-material/Refresh';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+} from "@mui/material";
+import Grid from "@mui/material/Grid";
+import RefreshIcon from "@mui/icons-material/Refresh";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import { type ClassDef, CLASSES } from "./models/class";
+import { ATTACK_STAT_INDEX } from "./models/weapon";
 
 // ========== データ定義 ==========
 
-type ClassDef = {
+type BackgroundDef = {
   name: string;
-  stats: [number, number, number, number, number, number]; // 筋力,敏捷,耐久,知力,判断,魅力
-  hp: number;
-  primaryStatIndex: number; // 攻撃に使うパラメータのインデックス
-  attackDie: string;
-  attackLabel: string;
+  statIndices: number[]; // 対応する能力値のインデックス（重複あり選択元）
+  feat: string;
 };
 
-const CLASSES: ClassDef[] = [
-  { name: 'ウィザード',    stats: [8,  12, 13, 15, 14, 10], hp: 6,  primaryStatIndex: 3, attackDie: '1d6',  attackLabel: '呪文攻撃命中' },
-  { name: 'ウォーロック',  stats: [8,  14, 13, 12, 10, 15], hp: 8,  primaryStatIndex: 5, attackDie: '1d10', attackLabel: '呪文攻撃命中' },
-  { name: 'クレリック',    stats: [14,  8, 13, 10, 15, 12], hp: 8,  primaryStatIndex: 4, attackDie: '1d8',  attackLabel: '近接攻撃命中' },
-  { name: 'ソーサラー',    stats: [10, 13, 14,  8, 12, 15], hp: 6,  primaryStatIndex: 5, attackDie: '1d6',  attackLabel: '呪文攻撃命中' },
-  { name: 'ドルイド',      stats: [8,  12, 14, 13, 15, 10], hp: 8,  primaryStatIndex: 4, attackDie: '1d8',  attackLabel: '呪文攻撃命中' },
-  { name: 'バード',        stats: [8,  14, 12, 13, 10, 15], hp: 8,  primaryStatIndex: 5, attackDie: '1d8',  attackLabel: '近接攻撃命中' },
-  { name: 'バーバリアン',  stats: [15, 13, 14, 10, 12,  8], hp: 12, primaryStatIndex: 0, attackDie: '1d12', attackLabel: '近接攻撃命中' },
-  { name: 'パラディン',    stats: [15, 10, 13,  8, 12, 14], hp: 10, primaryStatIndex: 0, attackDie: '1d8',  attackLabel: '近接攻撃命中' },
-  { name: 'ファイター',    stats: [15, 14, 13,  8, 10, 12], hp: 10, primaryStatIndex: 0, attackDie: '1d8',  attackLabel: '近接攻撃命中' },
-  { name: 'モンク',        stats: [12, 15, 13, 10, 14,  8], hp: 8,  primaryStatIndex: 1, attackDie: '1d6',  attackLabel: '近接攻撃命中' },
-  { name: 'レンジャー',    stats: [12, 15, 13,  8, 14, 10], hp: 10, primaryStatIndex: 1, attackDie: '1d8',  attackLabel: '遠隔攻撃命中' },
-  { name: 'ローグ',        stats: [12, 15, 13, 14, 10,  8], hp: 8,  primaryStatIndex: 1, attackDie: '1d6',  attackLabel: '近接攻撃命中' },
-];
-
 const RACES = [
-  'エルフ', 'ゴライアス', 'ティーフリング', 'ドラゴンボーン',
-  'ドワーフ', 'ノーム', 'ハーフエルフ', 'ハーフオーク', 'ハーフリング', 'ヒューマン',
+  "エルフ",
+  "ゴライアス",
+  "ティーフリング",
+  "ドラゴンボーン",
+  "ドワーフ",
+  "ノーム",
+  "ハーフエルフ",
+  "ハーフオーク",
+  "ハーフリング",
+  "ヒューマン",
 ];
 
-const BACKGROUNDS = ['兵士', '犯罪者', '賢者', '侍祭'];
+// 背景：statIndicesは対応する3つの能力値インデックス（重複あり選択元）
+const BACKGROUNDS: BackgroundDef[] = [
+  {
+    name: "侍祭",
+    statIndices: [3, 4, 5],
+    feat: "《魔法の嗜み（クレリック）》",
+  },
+  { name: "犯罪者", statIndices: [1, 2, 3], feat: "《警戒》" },
+  {
+    name: "賢者",
+    statIndices: [2, 3, 4],
+    feat: "《魔法の嗜み（ウィザード）》",
+  },
+  { name: "兵士", statIndices: [0, 1, 2], feat: "《凶暴な戦士》" },
+];
 
-const STAT_LABELS = ['筋力', '敏捷', '耐久', '知力', '判断', '魅力'] as const;
+const STAT_LABELS = ["筋力", "敏捷", "耐久", "知力", "判断", "魅力"] as const;
 
 // ========== ユーティリティ ==========
 
@@ -71,16 +77,33 @@ function modifierStr(stat: number): string {
   return m >= 0 ? `+${m}` : `${m}`;
 }
 
+// AC = 防具基本値 + min(敏捷補正, maxDexBonus) + シールド +2
+// バーバリアン・モンクはさらに判断補正を加算
+function calcAC(cls: ClassDef, effectiveStats: number[]): number {
+  const dexMod = modifier(effectiveStats[1]);
+  const wisMod = modifier(effectiveStats[4]);
+  const dexBonus =
+    cls.armor.maxDexBonus === null
+      ? dexMod
+      : Math.min(dexMod, cls.armor.maxDexBonus);
+
+  let ac = cls.armor.baseAC + dexBonus;
+  if (cls.hasShield) ac += 2;
+  if (cls.name === "バーバリアン" || cls.name === "モンク") ac += wisMod;
+  return ac;
+}
+
 // ========== 型定義 ==========
 
 type Character = {
   cls: ClassDef;
   race: string;
-  background: string;
+  background: BackgroundDef;
+  bgStatBonuses: number[]; // 長さ6、各能力値への背景ボーナス
 };
 
 type CharacterJSON = {
-  kind: 'character';
+  kind: "character";
   data: {
     name: string;
     memo: string;
@@ -94,39 +117,60 @@ type CharacterJSON = {
 // ========== キャラクター生成 ==========
 
 function generateCharacter(): Character {
-  return {
-    cls: randomPick(CLASSES),
-    race: randomPick(RACES),
-    background: randomPick(BACKGROUNDS),
-  };
+  const cls = randomPick(CLASSES);
+  const race = randomPick(RACES);
+  const background = randomPick(BACKGROUNDS);
+
+  // 背景の対応能力値から重複ありで3回選び、+1ずつ加算
+  const bgStatBonuses = [0, 0, 0, 0, 0, 0];
+  for (let i = 0; i < 3; i++) {
+    const statIdx = randomPick(background.statIndices);
+    bgStatBonuses[statIdx]++;
+  }
+
+  return { cls, race, background, bgStatBonuses };
 }
 
 function buildJSON(char: Character): CharacterJSON {
-  const { cls, race } = char;
-  const dex = cls.stats[1];
-  const primaryStat = cls.stats[cls.primaryStatIndex];
-  const modStr = modifierStr(primaryStat);
+  const { cls, race, background, bgStatBonuses } = char;
+  const effectiveStats = cls.stats.map((s, i) => s + bgStatBonuses[i]);
+
+  const dex = effectiveStats[1];
+  const attackStatIdx = ATTACK_STAT_INDEX[cls.weapon.attackType];
+  const modStatLabel = `${STAT_LABELS[attackStatIdx]}補正`;
+
+  const ac = calcAC(cls, effectiveStats);
+  const hp = cls.hp + modifier(effectiveStats[2]); // 耐久補正を加算
 
   const commands = [
-    `1d20${modStr}+2 ${cls.attackLabel}`,
-    `${cls.attackDie}${modStr} ダメージ`,
-  ].join('\n');
+    `1d20+{${modStatLabel}}+2 ${cls.weapon.name}[${cls.weapon.attackType}]命中`,
+    `${cls.weapon.damageDie}+{${modStatLabel}} ダメージ`,
+  ].join("\n");
+
+  // 能力値＋補正をparamsに追加
+  const params = [
+    ...STAT_LABELS.map((label, i) => ({
+      label,
+      value: String(effectiveStats[i]),
+    })),
+    ...STAT_LABELS.map((label, i) => ({
+      label: `${label}補正`,
+      value: modifierStr(effectiveStats[i]),
+    })),
+    { label: "AC", value: ac, max: ac },
+    { label: "move", value: 6, max: 6 },
+  ];
 
   return {
-    kind: 'character',
+    kind: "character",
     data: {
-      name: 'player1',
-      memo: `${race}/${cls.name}`,
+      name: "player1",
+      memo: `${race}/${cls.name}\n${background.feat}`,
       initiative: modifier(dex),
       status: [
-        { label: 'hp',   value: cls.hp, max: cls.hp },
-        { label: 'AC',   value: 10,     max: 10     },
-        { label: 'move', value: 6,      max: 6      },
+        { label: "hp", value: hp, max: hp },
       ],
-      params: STAT_LABELS.map((label, i) => ({
-        label,
-        value: String(cls.stats[i]),
-      })),
+      params,
       commands,
     },
   };
@@ -134,7 +178,15 @@ function buildJSON(char: Character): CharacterJSON {
 
 // ========== コンポーネント ==========
 
-function StatBox({ label, value }: { label: string; value: number }) {
+function StatBox({
+  label,
+  value,
+  bonus = 0,
+}: {
+  label: string;
+  value: number;
+  bonus?: number;
+}) {
   const mod = modifier(value);
   const modStr = mod >= 0 ? `+${mod}` : `${mod}`;
 
@@ -143,7 +195,7 @@ function StatBox({ label, value }: { label: string; value: number }) {
       variant="outlined"
       sx={{
         p: 1.5,
-        textAlign: 'center',
+        textAlign: "center",
         borderRadius: 2,
         minWidth: 72,
       }}
@@ -153,6 +205,12 @@ function StatBox({ label, value }: { label: string; value: number }) {
       </Typography>
       <Typography variant="h6" fontWeight="bold" lineHeight={1.2}>
         {value}
+        {bonus > 0 && (
+          <Typography component="span" variant="caption" color="success.main">
+            {" "}
+            (+{bonus})
+          </Typography>
+        )}
       </Typography>
       <Typography variant="body2" color="text.secondary">
         {modStr}
@@ -163,7 +221,7 @@ function StatBox({ label, value }: { label: string; value: number }) {
 
 function StatusChip({ label, value }: { label: string; value: number }) {
   return (
-    <Box sx={{ textAlign: 'center' }}>
+    <Box sx={{ textAlign: "center" }}>
       <Typography variant="caption" color="text.secondary" display="block">
         {label}
       </Typography>
@@ -179,8 +237,10 @@ function StatusChip({ label, value }: { label: string; value: number }) {
 export default function Home() {
   const [character, setCharacter] = useState<Character | null>(null);
   const [snackOpen, setSnackOpen] = useState(false);
-  const [snackMessage, setSnackMessage] = useState('');
-  const [snackSeverity, setSnackSeverity] = useState<'success' | 'error'>('success');
+  const [snackMessage, setSnackMessage] = useState("");
+  const [snackSeverity, setSnackSeverity] = useState<"success" | "error">(
+    "success",
+  );
 
   const handleGenerate = useCallback(() => {
     setCharacter(generateCharacter());
@@ -195,19 +255,29 @@ export default function Home() {
     try {
       const json = buildJSON(character);
       await navigator.clipboard.writeText(JSON.stringify(json, null, 2));
-      setSnackMessage('クリップボードにコピーしました');
-      setSnackSeverity('success');
+      setSnackMessage("クリップボードにコピーしました");
+      setSnackSeverity("success");
     } catch {
-      setSnackMessage('コピーに失敗しました');
-      setSnackSeverity('error');
+      setSnackMessage("コピーに失敗しました");
+      setSnackSeverity("error");
     }
     setSnackOpen(true);
   };
 
   if (!character) return null;
 
-  const { cls, race, background } = character;
+  const { cls, race, background, bgStatBonuses } = character;
   const json = buildJSON(character);
+  const effectiveStats = cls.stats.map((s, i) => s + bgStatBonuses[i]);
+  const ac = calcAC(cls, effectiveStats);
+  const hp = cls.hp + modifier(effectiveStats[2]); // 耐久補正を加算
+
+  // 背景ボーナスの表示テキスト生成
+  const bonusText = STAT_LABELS.map((label, i) =>
+    bgStatBonuses[i] > 0 ? `${label}+${bgStatBonuses[i]}` : null,
+  )
+    .filter(Boolean)
+    .join("、");
 
   return (
     <>
@@ -237,20 +307,87 @@ export default function Home() {
               <Typography variant="h5" fontWeight="bold" gutterBottom>
                 {cls.name}
               </Typography>
-              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                <Chip label={race} color="primary" variant="outlined" size="small" />
-                <Chip label={background} color="secondary" variant="outlined" size="small" />
+              <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                <Chip
+                  label={race}
+                  color="primary"
+                  variant="outlined"
+                  size="small"
+                />
+                <Chip
+                  label={background.name}
+                  color="secondary"
+                  variant="outlined"
+                  size="small"
+                />
               </Box>
+            </Box>
+
+            {/* 特技 */}
+            <Box sx={{ mb: 2 }}>
+              <Typography
+                variant="subtitle2"
+                color="text.secondary"
+                gutterBottom
+              >
+                特技
+              </Typography>
+              <Typography variant="body2">{background.feat}</Typography>
             </Box>
 
             <Divider sx={{ my: 2 }} />
 
             {/* ステータス */}
-            <Box sx={{ display: 'flex', justifyContent: 'space-around', mb: 2 }}>
-              <StatusChip label="HP" value={cls.hp} />
-              <StatusChip label="AC" value={10} />
+            <Box
+              sx={{ display: "flex", justifyContent: "space-around", mb: 2 }}
+            >
+              <StatusChip label="HP" value={hp} />
+              <StatusChip label="AC" value={ac} />
               <StatusChip label="移動" value={6} />
-              <StatusChip label="イニシアチブ" value={modifier(cls.stats[1])} />
+              <StatusChip
+                label="イニシアチブ"
+                value={modifier(effectiveStats[1])}
+              />
+            </Box>
+
+            <Divider sx={{ my: 2 }} />
+
+            {/* 武器・防具 */}
+            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+              武器・防具
+            </Typography>
+            <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", mb: 1 }}>
+              <Box>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  display="block"
+                >
+                  武器
+                </Typography>
+                <Typography variant="body2" fontWeight="bold">
+                  {cls.weapon.name}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {cls.weapon.attackType}・{cls.weapon.damageDie}
+                </Typography>
+              </Box>
+              <Box>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  display="block"
+                >
+                  防具
+                </Typography>
+                <Typography variant="body2" fontWeight="bold">
+                  {cls.armor.name}
+                  {cls.hasShield ? "＋シールド" : ""}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  AC {ac}
+                </Typography>
+              </Box>
             </Box>
 
             <Divider sx={{ my: 2 }} />
@@ -259,10 +396,24 @@ export default function Home() {
             <Typography variant="subtitle2" color="text.secondary" gutterBottom>
               能力値
             </Typography>
+            {bonusText && (
+              <Typography
+                variant="caption"
+                color="success.main"
+                display="block"
+                sx={{ mb: 1 }}
+              >
+                背景ボーナス：{bonusText}
+              </Typography>
+            )}
             <Grid container spacing={1}>
               {STAT_LABELS.map((label, i) => (
                 <Grid size={4} key={label}>
-                  <StatBox label={label} value={cls.stats[i]} />
+                  <StatBox
+                    label={label}
+                    value={effectiveStats[i]}
+                    bonus={bgStatBonuses[i]}
+                  />
                 </Grid>
               ))}
             </Grid>
@@ -275,7 +426,13 @@ export default function Home() {
             </Typography>
             <Paper
               variant="outlined"
-              sx={{ p: 1.5, fontFamily: 'monospace', fontSize: '0.85rem', whiteSpace: 'pre', borderRadius: 1 }}
+              sx={{
+                p: 1.5,
+                fontFamily: "monospace",
+                fontSize: "0.85rem",
+                whiteSpace: "pre",
+                borderRadius: 1,
+              }}
             >
               {json.data.commands}
             </Paper>
@@ -287,13 +444,13 @@ export default function Home() {
         open={snackOpen}
         autoHideDuration={2500}
         onClose={() => setSnackOpen(false)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
         <Alert
           onClose={() => setSnackOpen(false)}
           severity={snackSeverity}
           variant="filled"
-          sx={{ width: '100%' }}
+          sx={{ width: "100%" }}
         >
           {snackMessage}
         </Alert>
