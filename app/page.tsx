@@ -157,8 +157,6 @@ function buildJSON(char: Character): CharacterJSON {
       label: `${label}補正`,
       value: modifierStr(effectiveStats[i]),
     })),
-    { label: "AC", value: ac, max: ac },
-    { label: "move", value: 6, max: 6 },
   ];
 
   return {
@@ -169,6 +167,8 @@ function buildJSON(char: Character): CharacterJSON {
       initiative: modifier(dex),
       status: [
         { label: "hp", value: hp, max: hp },
+        { label: "AC", value: ac, max: ac },
+        { label: "move", value: 6, max: 6 },
       ],
       params,
       commands,
