@@ -22,6 +22,7 @@ import RefreshIcon from "@mui/icons-material/Refresh";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { type ClassDef, CLASSES } from "./models/class";
 import { ATTACK_STAT_INDEX } from "./models/weapon";
+import { type SpellSelection, selectSpells, hasSpells } from "./models/spell";
 
 // ========== データ定義 ==========
 
@@ -100,6 +101,7 @@ type Character = {
   race: string;
   background: BackgroundDef;
   bgStatBonuses: number[]; // 長さ6、各能力値への背景ボーナス
+  spells: SpellSelection;
 };
 
 type CharacterJSON = {
@@ -128,11 +130,32 @@ function generateCharacter(): Character {
     bgStatBonuses[statIdx]++;
   }
 
-  return { cls, race, background, bgStatBonuses };
+  const spells = selectSpells(cls.name, background.feat);
+
+  return { cls, race, background, bgStatBonuses, spells };
+}
+
+function buildMemo(
+  race: string,
+  className: string,
+  feat: string,
+  spells: SpellSelection,
+): string {
+  const lines = [`${race}/${className}`, feat];
+  if (spells.invocations.length > 0) {
+    lines.push(`妖術：${spells.invocations.join("、")}`);
+  }
+  if (spells.cantrips.length > 0) {
+    lines.push(`初級呪文：${spells.cantrips.join("、")}`);
+  }
+  if (spells.level1.length > 0) {
+    lines.push(`１レベル呪文：${spells.level1.join("、")}`);
+  }
+  return lines.join("\n");
 }
 
 function buildJSON(char: Character): CharacterJSON {
-  const { cls, race, background, bgStatBonuses } = char;
+  const { cls, race, background, bgStatBonuses, spells } = char;
   const effectiveStats = cls.stats.map((s, i) => s + bgStatBonuses[i]);
 
   const dex = effectiveStats[1];
@@ -163,7 +186,7 @@ function buildJSON(char: Character): CharacterJSON {
     kind: "character",
     data: {
       name: "player1",
-      memo: `${race}/${cls.name}\n${background.feat}`,
+      memo: buildMemo(race, cls.name, background.feat, spells),
       initiative: modifier(dex),
       status: [
         { label: "hp", value: hp, max: hp },
@@ -266,7 +289,7 @@ export default function Home() {
 
   if (!character) return null;
 
-  const { cls, race, background, bgStatBonuses } = character;
+  const { cls, race, background, bgStatBonuses, spells } = character;
   const json = buildJSON(character);
   const effectiveStats = cls.stats.map((s, i) => s + bgStatBonuses[i]);
   const ac = calcAC(cls, effectiveStats);
@@ -323,20 +346,6 @@ export default function Home() {
               </Box>
             </Box>
 
-            {/* 特技 */}
-            <Box sx={{ mb: 2 }}>
-              <Typography
-                variant="subtitle2"
-                color="text.secondary"
-                gutterBottom
-              >
-                特技
-              </Typography>
-              <Typography variant="body2">{background.feat}</Typography>
-            </Box>
-
-            <Divider sx={{ my: 2 }} />
-
             {/* ステータス */}
             <Box
               sx={{ display: "flex", justifyContent: "space-around", mb: 2 }}
@@ -349,6 +358,34 @@ export default function Home() {
                 value={modifier(effectiveStats[1])}
               />
             </Box>
+
+            <Divider sx={{ my: 2 }} />
+
+            {/* パラメータ */}
+            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+              能力値
+            </Typography>
+            {bonusText && (
+              <Typography
+                variant="caption"
+                color="success.main"
+                display="block"
+                sx={{ mb: 1 }}
+              >
+                背景ボーナス：{bonusText}
+              </Typography>
+            )}
+            <Grid container spacing={1}>
+              {STAT_LABELS.map((label, i) => (
+                <Grid size={4} key={label}>
+                  <StatBox
+                    label={label}
+                    value={effectiveStats[i]}
+                    bonus={bgStatBonuses[i]}
+                  />
+                </Grid>
+              ))}
+            </Grid>
 
             <Divider sx={{ my: 2 }} />
 
@@ -392,31 +429,68 @@ export default function Home() {
 
             <Divider sx={{ my: 2 }} />
 
-            {/* パラメータ */}
-            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-              能力値
-            </Typography>
-            {bonusText && (
+            {/* 特技 */}
+            <Box sx={{ mb: 2 }}>
               <Typography
-                variant="caption"
-                color="success.main"
-                display="block"
-                sx={{ mb: 1 }}
+                variant="subtitle2"
+                color="text.secondary"
+                gutterBottom
               >
-                背景ボーナス：{bonusText}
+                特技
               </Typography>
+              <Typography variant="body2">{background.feat}</Typography>
+            </Box>
+
+            {hasSpells(spells) && (
+              <>
+                <Divider sx={{ my: 2 }} />
+                <Box sx={{ mb: 2 }}>
+                  <Typography
+                    variant="subtitle2"
+                    color="text.secondary"
+                    gutterBottom
+                  >
+                    呪文
+                  </Typography>
+                  {spells.invocations.length > 0 && (
+                    <Box sx={{ mb: 1 }}>
+                      <Typography variant="caption" color="text.secondary">
+                        妖術
+                      </Typography>
+                      <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap", mt: 0.5 }}>
+                        {spells.invocations.map((s) => (
+                          <Chip key={s} label={s} size="small" color="warning" variant="outlined" />
+                        ))}
+                      </Box>
+                    </Box>
+                  )}
+                  {spells.cantrips.length > 0 && (
+                    <Box sx={{ mb: 1 }}>
+                      <Typography variant="caption" color="text.secondary">
+                        初級呪文
+                      </Typography>
+                      <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap", mt: 0.5 }}>
+                        {spells.cantrips.map((s) => (
+                          <Chip key={s} label={s} size="small" variant="outlined" />
+                        ))}
+                      </Box>
+                    </Box>
+                  )}
+                  {spells.level1.length > 0 && (
+                    <Box>
+                      <Typography variant="caption" color="text.secondary">
+                        １レベル呪文
+                      </Typography>
+                      <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap", mt: 0.5 }}>
+                        {spells.level1.map((s) => (
+                          <Chip key={s} label={s} size="small" color="primary" variant="outlined" />
+                        ))}
+                      </Box>
+                    </Box>
+                  )}
+                </Box>
+              </>
             )}
-            <Grid container spacing={1}>
-              {STAT_LABELS.map((label, i) => (
-                <Grid size={4} key={label}>
-                  <StatBox
-                    label={label}
-                    value={effectiveStats[i]}
-                    bonus={bgStatBonuses[i]}
-                  />
-                </Grid>
-              ))}
-            </Grid>
 
             <Divider sx={{ my: 2 }} />
 
