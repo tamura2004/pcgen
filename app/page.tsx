@@ -16,13 +16,26 @@ import {
   Snackbar,
   Alert,
   Paper,
+  Dialog,
+  DialogTitle,
+  DialogContent,
 } from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
 import Grid from "@mui/material/Grid";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { type ClassDef, CLASSES } from "./models/class";
 import { ATTACK_STAT_INDEX } from "./models/weapon";
 import { type SpellSelection, selectSpells, hasSpells } from "./models/spell";
+import spellDescriptionsData from "./models/data/spell_descriptions.json";
+
+type SpellInfo = {
+  english: string;
+  stats: Record<string, string>;
+  description: string;
+};
+
+const SPELL_DESCRIPTIONS = spellDescriptionsData as Record<string, SpellInfo>;
 
 // ========== データ定義 ==========
 
@@ -264,6 +277,7 @@ export default function Home() {
   const [snackSeverity, setSnackSeverity] = useState<"success" | "error">(
     "success",
   );
+  const [spellDialog, setSpellDialog] = useState<{ name: string; info: SpellInfo } | null>(null);
 
   const handleGenerate = useCallback(() => {
     setCharacter(generateCharacter());
@@ -272,6 +286,13 @@ export default function Home() {
   useEffect(() => {
     handleGenerate();
   }, [handleGenerate]);
+
+  const handleSpellClick = (spellName: string) => {
+    const info = SPELL_DESCRIPTIONS[spellName];
+    if (info) {
+      setSpellDialog({ name: spellName, info });
+    }
+  };
 
   const handleCopy = async () => {
     if (!character) return;
@@ -459,7 +480,15 @@ export default function Home() {
                       </Typography>
                       <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap", mt: 0.5 }}>
                         {spells.invocations.map((s) => (
-                          <Chip key={s} label={s} size="small" color="warning" variant="outlined" />
+                          <Chip
+                            key={s}
+                            label={s}
+                            size="small"
+                            color="warning"
+                            variant="outlined"
+                            onClick={SPELL_DESCRIPTIONS[s] ? () => handleSpellClick(s) : undefined}
+                            sx={SPELL_DESCRIPTIONS[s] ? { cursor: "pointer" } : undefined}
+                          />
                         ))}
                       </Box>
                     </Box>
@@ -471,7 +500,14 @@ export default function Home() {
                       </Typography>
                       <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap", mt: 0.5 }}>
                         {spells.cantrips.map((s) => (
-                          <Chip key={s} label={s} size="small" variant="outlined" />
+                          <Chip
+                            key={s}
+                            label={s}
+                            size="small"
+                            variant="outlined"
+                            onClick={SPELL_DESCRIPTIONS[s] ? () => handleSpellClick(s) : undefined}
+                            sx={SPELL_DESCRIPTIONS[s] ? { cursor: "pointer" } : undefined}
+                          />
                         ))}
                       </Box>
                     </Box>
@@ -483,7 +519,15 @@ export default function Home() {
                       </Typography>
                       <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap", mt: 0.5 }}>
                         {spells.level1.map((s) => (
-                          <Chip key={s} label={s} size="small" color="primary" variant="outlined" />
+                          <Chip
+                            key={s}
+                            label={s}
+                            size="small"
+                            color="primary"
+                            variant="outlined"
+                            onClick={SPELL_DESCRIPTIONS[s] ? () => handleSpellClick(s) : undefined}
+                            sx={SPELL_DESCRIPTIONS[s] ? { cursor: "pointer" } : undefined}
+                          />
                         ))}
                       </Box>
                     </Box>
@@ -529,6 +573,46 @@ export default function Home() {
           {snackMessage}
         </Alert>
       </Snackbar>
+
+      <Dialog
+        open={spellDialog !== null}
+        onClose={() => setSpellDialog(null)}
+        maxWidth="sm"
+        fullWidth
+      >
+        {spellDialog && (
+          <>
+            <DialogTitle sx={{ pr: 6 }}>
+              {spellDialog.name}
+              <Typography variant="caption" color="text.secondary" display="block">
+                {spellDialog.info.english}
+              </Typography>
+              <IconButton
+                aria-label="close"
+                onClick={() => setSpellDialog(null)}
+                sx={{ position: "absolute", right: 8, top: 8 }}
+              >
+                <CloseIcon />
+              </IconButton>
+            </DialogTitle>
+            <DialogContent dividers>
+              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, mb: 2 }}>
+                {Object.entries(spellDialog.info.stats).map(([key, val]) => (
+                  <Box key={key}>
+                    <Typography variant="caption" color="text.secondary" display="block">
+                      {key}
+                    </Typography>
+                    <Typography variant="body2">{val}</Typography>
+                  </Box>
+                ))}
+              </Box>
+              <Typography variant="body2" sx={{ lineHeight: 1.8 }}>
+                {spellDialog.info.description}
+              </Typography>
+            </DialogContent>
+          </>
+        )}
+      </Dialog>
     </>
   );
 }
