@@ -31,6 +31,7 @@ import spellDescriptionsData from "./models/data/spell_descriptions.json";
 
 type SpellInfo = {
   english: string;
+  level: string;
   stats: Record<string, string>;
   description: string;
 };
@@ -586,6 +587,9 @@ export default function Home() {
               {spellDialog.name}
               <Typography variant="caption" color="text.secondary" display="block">
                 {spellDialog.info.english}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" display="block">
+                {spellDialog.info.level}
               </Typography>
               <IconButton
                 aria-label="close"
